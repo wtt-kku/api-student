@@ -30,7 +30,7 @@ func New(e *echo.Echo) *echo.Echo {
 
 	//TEACHER RULE MANAGEMENT
 	e.POST("/api/v1/rule", controllers.AddRule, middleware.JWTMiddleware)
-	e.DELETE("/api/v1/rule/:rule_id", controllers.DeleteRule)
+	e.DELETE("/api/v1/rule/:rule_id", controllers.DeleteRule, middleware.JWTMiddleware)
 
 	return e
 }

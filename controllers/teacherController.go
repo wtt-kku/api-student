@@ -340,8 +340,8 @@ func AddRule(c echo.Context) (err error) {
 
 func DeleteRule(c echo.Context) (err error) {
 
-	// UserId := c.Get("userId").(string)
-	UserId := "d08d1804-c43b-4406-8c4e-e8a8d1b90b0f"
+	UserId := c.Get("userId").(string)
+	// UserId := "d08d1804-c43b-4406-8c4e-e8a8d1b90b0f"
 
 	RuleId := c.Param("rule_id")
 
