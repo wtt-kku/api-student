@@ -23,3 +23,13 @@ type TeacherInfo struct {
 	Class     string `db:"class" json:"class"`
 	TeacherNo string `db:"teacher_no" json:"teacher_no"`
 }
+
+type TeacherGetStudentList struct {
+	Id        string `db:"id" json:"id"`
+	FirstName string `db:"firstname" json:"firstname"`
+	Lastname  string `db:"lastname" json:"lastname"`
+	Gender    string `db:"gender" json:"gender"`
+	Class     string `db:"class" json:"class"`
+	StudentNo string `db:"student_no" json:"student_no"`
+	Score     int    `db:"score" json:"score"`
+}

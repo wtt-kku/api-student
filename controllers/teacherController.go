@@ -405,3 +405,141 @@ func DeleteRule(c echo.Context) (err error) {
 	})
 
 }
+
+func DeleteCard(c echo.Context) (err error) {
+
+	UserId := c.Get("userId").(string)
+	// UserId := "d08d1804-c43b-4406-8c4e-e8a8d1b90b0f"
+
+	CardId := c.Param("card_id")
+
+	teacher := models.TeacherInfo{}
+	err = config.DbPostgres.Get(&teacher, `select id, firstname, lastname, gender, class, teacher_no  from teacher t  where t.id = $1 limit 1`, UserId)
+
+	if err != nil {
+
+		if err == sql.ErrNoRows {
+			return c.JSON(http.StatusOK, &utils.Response{
+				Result:  false,
+				Code:    9000,
+				Message: "Teacher Not found",
+			})
+		} else if err != nil {
+			slog.Error("TEACHER_DELETE_CARD#1", "msg", err)
+			return c.JSON(http.StatusOK, &utils.Response{
+				Result:  false,
+				Code:    utils.CommonRespCode["INTERNAL_SERVER_ERROR"].Code,
+				Message: utils.CommonRespCode["INTERNAL_SERVER_ERROR"].Message,
+			})
+		}
+
+	}
+
+	result, err := config.DbPostgres.NamedExec(`UPDATE public."card" SET status=2  WHERE status=0 AND id=:card_id;
+	`,
+		map[string]interface{}{
+			"card_id": CardId,
+			"now":     time.Now(),
+		})
+
+	if err != nil {
+		slog.Error("TEACHER_DELETE_CARD#2", "msg", err)
+		return c.JSON(http.StatusOK, &utils.Response{
+			Result:  false,
+			Code:    utils.CommonRespCode["INTERNAL_SERVER_ERROR"].Code,
+			Message: utils.CommonRespCode["INTERNAL_SERVER_ERROR"].Message,
+		})
+	}
+
+	row, err := result.RowsAffected()
+	if err != nil {
+		fmt.Println("Error getting last insert ID:", err)
+		return
+	}
+
+	if row != 1 {
+		slog.Error("TEACHER_DELETE_CARD#3", "msg", err)
+		return c.JSON(http.StatusOK, &utils.Response{
+			Result:  false,
+			Code:    utils.CommonRespCode["INTERNAL_SERVER_ERROR"].Code,
+			Message: utils.CommonRespCode["INTERNAL_SERVER_ERROR"].Message,
+		})
+	}
+
+	return c.JSON(http.StatusOK, &utils.Response{
+		Result:  true,
+		Code:    2000,
+		Message: "Success",
+	})
+
+}
+
+func StudentList(c echo.Context) (err error) {
+	UserId := c.Get("userId").(string)
+	// UserId := "d08d1804-c43b-4406-8c4e-e8a8d1b90b0f"
+
+	body := new(dto.PunishDTO)
+	if err = c.Bind(&body); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+
+	if err = c.Validate(body); err != nil {
+		return err
+	}
+
+	teacher := models.TeacherInfo{}
+	err = config.DbPostgres.Get(&teacher, `select id, firstname, lastname, gender, class, teacher_no  from teacher t  where t.id = $1 limit 1`, UserId)
+
+	if err != nil {
+
+		if err == sql.ErrNoRows {
+			return c.JSON(http.StatusOK, &utils.Response{
+				Result:  false,
+				Code:    9000,
+				Message: "Teacher Not found",
+			})
+		} else if err != nil {
+			slog.Error("TEACHER_PUNISH_CHECK_TID", "msg", err)
+			return c.JSON(http.StatusOK, &utils.Response{
+				Result:  false,
+				Code:    utils.CommonRespCode["INTERNAL_SERVER_ERROR"].Code,
+				Message: utils.CommonRespCode["INTERNAL_SERVER_ERROR"].Message,
+			})
+		}
+
+	}
+
+	//GET STUDENT LIST
+	student_list := []models.TeacherGetStudentList{}
+
+	err = config.DbPostgres.Select(&student_list, `SELECT s.id, s.firstname, s.lastname, s.gender, s."class", s.student_no, sc.score  
+	FROM student s
+	LEFT JOIN score sc
+	ON s.student_no  = sc.student_no `)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return c.JSON(http.StatusOK, &utils.Response{
+				Result:  false,
+				Code:    9000,
+				Message: "Student Not found",
+			})
+		} else if err != nil {
+			slog.Error("TEACHER_GET_STUDENT_LIST", "msg", err)
+			return c.JSON(http.StatusInternalServerError, &utils.Response{
+				Result:  false,
+				Code:    utils.CommonRespCode["INTERNAL_SERVER_ERROR"].Code,
+				Message: utils.CommonRespCode["INTERNAL_SERVER_ERROR"].Message,
+			})
+		}
+
+	}
+
+	return c.JSON(http.StatusOK, utils.Response{
+		Result:  true,
+		Code:    utils.CommonRespCode["OK"].Code,
+		Message: utils.CommonRespCode["OK"].Message,
+		Data:    student_list,
+	})
+
+}

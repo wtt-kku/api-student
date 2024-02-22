@@ -27,10 +27,14 @@ func New(e *echo.Echo) *echo.Echo {
 
 	//TEACHER
 	e.POST("/api/v1/teacher/punish", controllers.Punish, middleware.JWTMiddleware)
+	e.GET("/api/v1/teacher/student-list", controllers.StudentList, middleware.JWTMiddleware)
 
 	//TEACHER RULE MANAGEMENT
 	e.POST("/api/v1/rule", controllers.AddRule, middleware.JWTMiddleware)
 	e.DELETE("/api/v1/rule/:rule_id", controllers.DeleteRule, middleware.JWTMiddleware)
+
+	//TEACHER CARD MANAGEMENT
+	e.DELETE("/api/v1/card/:card_id", controllers.DeleteCard, middleware.JWTMiddleware)
 
 	return e
 }
