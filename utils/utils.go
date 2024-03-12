@@ -1,7 +1,9 @@
 package utils
 
 import (
+	"crypto/rand"
 	"fmt"
+	"math/big"
 	"os"
 	"strings"
 
@@ -94,4 +96,17 @@ func ContainsString(slice []string, target string) bool {
 		}
 	}
 	return false
+}
+
+func GenerateRandomString(length int) (string, error) {
+	const charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	var result string
+	for i := 0; i < length; i++ {
+		randomIndex, err := rand.Int(rand.Reader, big.NewInt(int64(len(charset))))
+		if err != nil {
+			return "", err
+		}
+		result += string(charset[randomIndex.Int64()])
+	}
+	return result, nil
 }

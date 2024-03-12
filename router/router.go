@@ -35,6 +35,7 @@ func New(e *echo.Echo) *echo.Echo {
 
 	//TEACHER CARD MANAGEMENT
 	e.DELETE("/api/v1/card/:card_id", controllers.DeleteCard, middleware.JWTMiddleware)
+	e.POST("/api/v1/create-card", controllers.CreateCard, middleware.JWTMiddleware)
 
 	return e
 }

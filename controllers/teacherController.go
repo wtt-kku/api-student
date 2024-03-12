@@ -543,3 +543,116 @@ func StudentList(c echo.Context) (err error) {
 	})
 
 }
+
+func CreateCard(c echo.Context) (err error) {
+	UserId := c.Get("userId").(string)
+	// UserId := "d08d1804-c43b-4406-8c4e-e8a8d1b90b0f"
+
+	body := new(dto.CreateCardDTO)
+	if err = c.Bind(&body); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+
+	if err = c.Validate(body); err != nil {
+		return err
+	}
+
+	teacher := models.TeacherInfo{}
+	err = config.DbPostgres.Get(&teacher, `select id, firstname, lastname, gender, class, teacher_no  from teacher t  where t.id = $1 limit 1`, UserId)
+
+	if err != nil {
+
+		if err == sql.ErrNoRows {
+			return c.JSON(http.StatusOK, &utils.Response{
+				Result:  false,
+				Code:    9000,
+				Message: "Teacher Not found",
+			})
+		} else if err != nil {
+			slog.Error("TEACHER_CREATE CARD", "msg", err)
+			return c.JSON(http.StatusOK, &utils.Response{
+				Result:  false,
+				Code:    utils.CommonRespCode["INTERNAL_SERVER_ERROR"].Code,
+				Message: utils.CommonRespCode["INTERNAL_SERVER_ERROR"].Message,
+			})
+		}
+
+	}
+	//CHECK RULE
+	rule := models.Rule{}
+	err = config.DbPostgres.Get(&rule, fmt.Sprintf(`select id, type, title, description, point, created_at, updated_at from "rule" r where r.id = '%s' limit 1`, body.RuleId))
+
+	if err != nil {
+
+		if err == sql.ErrNoRows {
+			return c.JSON(http.StatusBadRequest, &utils.Response{
+				Result:  false,
+				Code:    400,
+				Message: "Rule Not found",
+			})
+		} else if err != nil {
+			slog.Error("GET_RULE", "msg", err)
+			return c.JSON(http.StatusInternalServerError, &utils.Response{
+				Result:  false,
+				Code:    utils.CommonRespCode["INTERNAL_SERVER_ERROR"].Code,
+				Message: utils.CommonRespCode["INTERNAL_SERVER_ERROR"].Message,
+			})
+		}
+
+	}
+
+	if rule.Type != "INCREASE" {
+		return c.JSON(http.StatusOK, &utils.Response{
+			Result:  false,
+			Code:    3000,
+			Message: "Rule type invalid",
+		})
+	}
+	// RESPONSE STRUCT
+	type ResponseStuct struct {
+		CardCode string `json:"card_code"`
+		Point    int    `json:"point"`
+	}
+
+	var res []ResponseStuct
+
+	//INSERT
+	tx, err := config.DbPostgres.Beginx()
+	if err != nil {
+		fmt.Println(err)
+		return c.JSON(http.StatusInternalServerError, &utils.Response{
+			Result:  false,
+			Code:    utils.CommonRespCode["INTERNAL_SERVER_ERROR"].Code,
+			Message: utils.CommonRespCode["INTERNAL_SERVER_ERROR"].Message,
+		})
+	}
+	defer tx.Rollback()
+
+	for i := 0; i < body.CardAmount; i++ {
+
+		randomString, err := utils.GenerateRandomString(8)
+		if err != nil {
+			panic(err)
+		}
+
+		tx.NamedExec(`INSERT INTO public.card (id, card_code, rule_id, status, created_at, updated_at) VALUES(uuid_generate_v4(), :random, :ruleid, 0, :now, :now)`, map[string]interface{}{
+			"random": randomString,
+			"ruleid": body.RuleId,
+			"now":    time.Now(),
+		})
+		res = append(res, ResponseStuct{
+			CardCode: randomString,
+			Point:    rule.Point,
+		})
+
+	}
+
+	tx.Commit()
+
+	return c.JSON(http.StatusOK, &utils.Response{
+		Result:  true,
+		Code:    2000,
+		Message: "OK",
+		Data:    res,
+	})
+}

@@ -31,3 +31,8 @@ type AddRuleDTO struct {
 	RuleType  int    `json:"rule_type"`
 	RuleScore int    `json:"rule_point"`
 }
+
+type CreateCardDTO struct {
+	RuleId     string `json:"rule_id"`
+	CardAmount int    `json:"card_amount"`
+}
